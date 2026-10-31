@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: staybook
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: API_BASE_URL
+        value: https://staybook1404-1704.onrender.com/api
+      - key: MONGODB_URI
+        value: mongodb+srv://earthyhomestay:earthyhomestay@cluster0.lx428gp.mongodb.net/staybook?retryWrites=true&w=majority
+      - key: PORT
+        value: "3002"
