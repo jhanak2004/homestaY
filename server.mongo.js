@@ -16,7 +16,7 @@ const MONGODB_URI = (process.env.MONGODB_URI || '').trim();
 const APP_NAME = process.env.APP_NAME || 'StayBook';
 const STORAGE_PREFIX = process.env.STORAGE_PREFIX || 'staybook';
 const DEFAULT_PROPERTY_NAME = process.env.PROPERTY_NAME || 'My Property';
-const DEFAULT_GOOGLE_FORM_URL = process.env.GOOGLE_FORM_LINK || 'https://docs.google.com/forms/d/e/1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ/viewform';
+const DEFAULT_GOOGLE_FORM_URL = process.env.GOOGLE_FORM_LINK || 'https://docs.google.com/forms/d/e/1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw/viewform?usp=pp_url&entry.652174934=';
 
 if (!MONGODB_URI) {
   console.error('❌ MONGODB_URI is missing. Set the same MongoDB URI in local .env and Render environment variables.');
@@ -24,11 +24,16 @@ if (!MONGODB_URI) {
 }
 
 // ── Google Form Dynamic Link Generator ──────────────────────
-const GOOGLE_FORM_ID = '1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ';
-const BOOKING_ID_ENTRY = '1457480287';
+const GOOGLE_FORM_ID = '1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw';
+const BOOKING_ID_ENTRY = '652174934';
 
-function generateFormLink(bookingId) {
-  return `https://docs.google.com/forms/d/e/${GOOGLE_FORM_ID}/viewform?usp=pp_url&entry.${BOOKING_ID_ENTRY}=${encodeURIComponent(bookingId)}`;
+function generateFormLink(bookingId, formUrl = DEFAULT_GOOGLE_FORM_URL, prefillField = `entry.${BOOKING_ID_ENTRY}`) {
+  const url = new URL(formUrl || DEFAULT_GOOGLE_FORM_URL);
+  const field = String(prefillField || `entry.${BOOKING_ID_ENTRY}`).trim();
+  const fieldKey = field.startsWith('entry.') ? field : `entry.${field}`;
+  url.searchParams.set('usp', 'pp_url');
+  url.searchParams.set(fieldKey, String(bookingId));
+  return url.toString();
 }
 
 // ── Authentication ──────────────────────────────────────────
@@ -159,7 +164,8 @@ app.get('/config.js', (req, res) => {
       appName: APP_NAME,
       storagePrefix: STORAGE_PREFIX,
       apiBaseUrl: process.env.API_BASE_URL || '',
-      googleFormUrl: DEFAULT_GOOGLE_FORM_URL
+      googleFormUrl: DEFAULT_GOOGLE_FORM_URL,
+      formPrefillField: process.env.FORM_PREFILL_FIELD || 'entry.652174934'
     })};`
   );
 });
@@ -435,6 +441,15 @@ async function upsertSetting(key, value, propertyId = null) {
   );
 }
 
+async function ensureSettingDefault(key, value, propertyId = null) {
+  const filter = { property_id: propertyId || null, key };
+  await HostSetting.updateOne(
+    filter,
+    { $setOnInsert: { ...filter, value: String(value) } },
+    { upsert: true }
+  );
+}
+
 async function readPropertySettings(propertyId = null) {
   const out = {};
   const globals = await HostSetting.find({ property_id: null }).lean();
@@ -500,7 +515,7 @@ async function seedDefaults() {
         color: '#0d9488',
         initials: 'SM',
         booking_source: 'personal',
-        form_link: 'https://forms.gle/example',
+        form_link: '',
         form_sent: true,
         form_sent_at: `${date(1)}T10:00:00`,
         host_notes: 'Repeat guest. Very clean. ⭐⭐⭐⭐⭐',
@@ -522,7 +537,7 @@ async function seedDefaults() {
         color: '#6366f1',
         initials: 'PK',
         booking_source: 'personal',
-        form_link: 'https://forms.gle/example2',
+        form_link: '',
         form_sent: true,
         form_sent_at: `${date(5)}T14:00:00`,
         host_notes: 'First time guest. Verified ID.',
@@ -555,20 +570,20 @@ async function seedDefaults() {
     console.log('✅ Demo data seeded!');
   }
 
-  await upsertSetting('property_name', DEFAULT_PROPERTY_NAME);
-  await upsertSetting('price_per_night', '4100');
-  await upsertSetting('google_form_link', DEFAULT_GOOGLE_FORM_URL);
-  await upsertSetting('form_prefill_field', 'entry.1457480287');
-  await upsertSetting('gmail_user', 'earthyhomestay@gmail.com');
-  await upsertSetting('gmail_app_password', '');
+  await ensureSettingDefault('property_name', DEFAULT_PROPERTY_NAME);
+  await ensureSettingDefault('price_per_night', '4100');
+  await ensureSettingDefault('google_form_link', DEFAULT_GOOGLE_FORM_URL);
+  await ensureSettingDefault('form_prefill_field', 'entry.652174934');
+  await ensureSettingDefault('gmail_user', 'earthyhomestay@gmail.com');
+  await ensureSettingDefault('gmail_app_password', '');
 
   // Seed property-2 scoped defaults (example)
-  await upsertSetting('property_name', 'Sea View Studio', 'property-2');
-  await upsertSetting('price_per_night', '4100', 'property-2');
-  await upsertSetting('google_form_link', DEFAULT_GOOGLE_FORM_URL, 'property-2');
-  await upsertSetting('form_prefill_field', 'entry.1457480287', 'property-2');
-  await upsertSetting('gmail_user', '', 'property-2');
-  await upsertSetting('gmail_app_password', '', 'property-2');
+  await ensureSettingDefault('property_name', 'Sea View Studio', 'property-2');
+  await ensureSettingDefault('price_per_night', '4100', 'property-2');
+  await ensureSettingDefault('google_form_link', DEFAULT_GOOGLE_FORM_URL, 'property-2');
+  await ensureSettingDefault('form_prefill_field', 'entry.652174934', 'property-2');
+  await ensureSettingDefault('gmail_user', '', 'property-2');
+  await ensureSettingDefault('gmail_app_password', '', 'property-2');
 }
 
 // ── ROUTES ──────────────────────────────────────────────────
@@ -854,8 +869,6 @@ app.delete('/api/bookings/:id', requireAuth, async (req, res) => {
 
 app.post('/api/bookings/:id/send-form', requireAuth, async (req, res) => {
   try {
-    const { form_link } = req.body;
-
     const b = await Booking.findOne({ id: req.params.id }).lean();
     if (!b) return res.status(404).json({ success: false, message: 'Booking not found' });
 
@@ -865,7 +878,11 @@ app.post('/api/bookings/:id/send-form', requireAuth, async (req, res) => {
     const gmailPass = String(settings.gmail_app_password || process.env.GMAIL_APP_PASSWORD || '').trim();
     
     // Generate dynamic form link with booking ID
-    const finalFormLink = form_link || generateFormLink(b.id);
+    const finalFormLink = generateFormLink(
+      b.id,
+      settings.google_form_link || DEFAULT_GOOGLE_FORM_URL,
+      settings.form_prefill_field || `entry.${BOOKING_ID_ENTRY}`
+    );
 
     let emailSent = false;
     let emailError = null;
@@ -923,41 +940,81 @@ app.post('/api/bookings/:id/send-form', requireAuth, async (req, res) => {
 
 app.post('/api/bookings/:id/send-whatsapp', requireAuth, async (req, res) => {
   try {
-    const { form_link } = req.body;
-    if (!form_link) return res.status(400).json({ success: false, message: 'form_link required' });
-
     const b = await Booking.findOne({ id: req.params.id }).lean();
-    if (!b) return res.status(404).json({ success: false, message: 'Booking not found' });
+    if (!b) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
 
     const rawPhone = String(b.guest_phone || '').trim();
     if (!rawPhone) {
-      return res.status(400).json({ success: false, message: 'Guest phone number not found' });
+      return res.status(400).json({
+        success: false,
+        message: 'Guest phone number not found'
+      });
     }
 
     let phone = rawPhone.replace(/\D/g, '');
-    if (phone.length === 10) phone = `91${phone}`;
-    if (phone.length < 11) {
-      return res.status(400).json({ success: false, message: 'Invalid guest phone number for WhatsApp' });
+    if (phone.length === 10) {
+      phone = `91${phone}`;
     }
 
-    const setting = await HostSetting.findOne({ key: 'property_name' }).lean();
+    if (phone.length < 11) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid guest phone number for WhatsApp'
+      });
+    }
+
+    // Generate Google Form link with actual booking ID
+    const GOOGLE_FORM_URL =
+      'https://docs.google.com/forms/d/e/1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw/viewform';
+
+    const form_link =
+      `${GOOGLE_FORM_URL}?usp=pp_url&entry.652174934=${encodeURIComponent(b.id)}`;
+
+    const setting = await HostSetting.findOne({
+      key: 'property_name'
+    }).lean();
+
     const propertyName = setting?.value || 'StayBook';
-    const message = `Hi ${b.guest_name}, please fill your guest form for ${propertyName}: ${form_link}`;
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    const message =
+      `Hi ${b.guest_name}, please fill your guest form for ${propertyName}: ${form_link}`;
+
+    const whatsappUrl =
+      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
     const now = new Date().toISOString();
     await Booking.updateOne(
       { id: req.params.id },
-      { $set: { form_link, form_sent: true, form_sent_at: now, updated_at: now } }
+      {
+        $set: {
+          form_link,
+          form_sent: true,
+          form_sent_at: now,
+          updated_at: now
+        }
+      }
     );
 
     res.json({
       success: true,
       message: 'WhatsApp link ready',
-      data: { whatsapp_url: whatsappUrl }
+      data: {
+        whatsapp_url: whatsappUrl,
+        form_link
+      }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Send WhatsApp form error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
@@ -1159,7 +1216,7 @@ async function start() {
       serverSelectionTimeoutMS: 10000
     });
 
-    console.log(`🗄️ Connected to MongoDB: ${MONGODB_URI}`);
+    console.log('🗄️ Connected to MongoDB');
 
     await migrateHostSettingIndexes();
 
