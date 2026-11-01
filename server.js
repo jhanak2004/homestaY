@@ -604,9 +604,6 @@ app.post('/api/bookings/:id/send-form', requireAuth, async (req, res) => {
 
 // POST /api/bookings/:id/send-whatsapp
 app.post('/api/bookings/:id/send-whatsapp', requireAuth, (req, res) => {
-  const { form_link } = req.body;
-  if (!form_link) return res.status(400).json({ success: false, message: 'form_link required' });
-
   const b = db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id);
   if (!b) return res.status(404).json({ success: false, message: 'Booking not found' });
 
@@ -622,6 +619,7 @@ app.post('/api/bookings/:id/send-whatsapp', requireAuth, (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid guest phone number for WhatsApp' });
   }
 
+  const form_link = generateFormLink(b.id);
   const propertyName = db.prepare("SELECT value FROM host_settings WHERE key='property_name'").get()?.value || 'StayBook';
   const message = `Hi ${b.guest_name}, please fill your guest form for ${propertyName}: ${form_link}`;
   const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -633,7 +631,7 @@ app.post('/api/bookings/:id/send-whatsapp', requireAuth, (req, res) => {
   res.json({
     success: true,
     message: 'WhatsApp link ready',
-    data: { whatsapp_url: whatsappUrl }
+    data: { whatsapp_url: whatsappUrl, form_link }
   });
 });
 
