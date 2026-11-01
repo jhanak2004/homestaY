@@ -169,6 +169,8 @@ input,textarea,select{font-family:'DM Sans',sans-serif;outline:none}
 .resp-card{background:var(--surface);border-radius:10px;padding:11px;margin-bottom:8px;border-left:3px solid var(--teal)}
 .resp-q{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
 .resp-a{font-size:13px;font-weight:500;color:var(--ink)}
+.resp-document-link{display:inline-flex;flex-direction:column;align-items:flex-start;gap:5px;color:var(--teal-d);font-size:11px;font-weight:600;text-decoration:none;margin:0 8px 8px 0}
+.resp-document-preview{width:120px;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer}
 .awaiting{background:var(--amber-bg);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
 .awaiting-icon{font-size:28px;margin-bottom:6px}
 .awaiting-t{font-size:13px;color:#92400e;font-weight:600}
@@ -1435,14 +1437,15 @@ function renderFormResponseValue(question, answer){
   const q = String(question || '').toLowerCase().trim().replace(/\s+/g, '_');
   const a = String(answer || '').trim();
 
-  const isPreviewField = q === 'id_of_members' || q === 'photo_of_members';
+  const isPreviewField = ['id_of_members', 'photo_of_members', 'document', 'documents', 'document_upload', 'id_document', 'id_proof', 'identity_document'].includes(q);
   if (isPreviewField) {
     const imageUrls = extractImageUrls(answer);
     if (imageUrls.length) {
       return imageUrls
         .map((url) => {
           const previewUrl = toDrivePreviewUrl(url);
-          return `<img src="${previewUrl}" style="width:120px; border-radius:8px; cursor:pointer; margin:0 8px 8px 0;" onclick="window.open(this.src, '_blank')"/>`;
+          const fileUrl = toDriveFileUrl(url);
+          return `<a class="resp-document-link" href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(previewUrl)}" class="resp-document-preview" alt="Document preview"><span>Click to view document</span></a>`;
         })
         .join('');
     }
@@ -1495,6 +1498,12 @@ function toDrivePreviewUrl(rawUrl){
   }
 
   return url;
+}
+function toDriveFileUrl(rawUrl){
+  const url = String(rawUrl || '').trim();
+  if(!url) return '';
+  const fileId = url.match(/[-\w]{25,}/)?.[0];
+  return fileId ? `https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view` : url;
 }
 function formatSubmissionLabel(submittedAt, fallbackNumber){
   if(!submittedAt) return `Submission #${fallbackNumber}`;
