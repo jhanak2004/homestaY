@@ -1076,19 +1076,8 @@ async function handleSubmitForm(req, res) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
-    if (!booking.form_sent_at) {
-      pushWebhookLog({
-        type: 'submit-form',
-        status: 'form_not_sent',
-        booking_id,
-        path: req.originalUrl,
-        method: req.method
-      });
-      return res.status(400).json({ success: false, message: 'Form link has not been sent for this booking yet' });
-    }
-
-    // Accept responses as soon as the form link has been sent.
-    // (Do not gate by check-in/check-out dates.)
+    // Accept a valid response for an existing booking even if the send
+    // timestamp was not recorded (for example, after a WhatsApp handoff).
 
     const data = normalizeWebhookPayload(req.body || {});
     console.log('Incoming webhook data for booking', booking_id, data);
@@ -1111,9 +1100,17 @@ async function handleSubmitForm(req, res) {
 
     const submissionCount = await FormResponse.countDocuments({ booking_id });
 
+    const submittedAt = new Date().toISOString();
     await Booking.updateOne(
-      { id: booking_id },
-      { $set: { status: 'confirmed', updated_at: new Date().toISOString() } }
+      { id: booking_id, status: { $ne: 'cancelled' } },
+      {
+        $set: {
+          status: 'confirmed',
+          form_sent: true,
+          form_sent_at: booking.form_sent_at || submittedAt,
+          updated_at: submittedAt
+        }
+      }
     );
 
     console.log(`📋 Form response received for booking ${booking_id}`);
