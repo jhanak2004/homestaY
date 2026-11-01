@@ -993,7 +993,7 @@ async function openDetail(id) {
         const submissionEntries = Object.entries(entry?.response_data || {})
           .filter(([q]) => {
             const key = String(q || '').toLowerCase().trim().replace(/\s+/g, '_');
-            return key !== 'guest_email' && key !== 'photo_of_members';
+            return key !== 'guest_email' && key !== 'photo_of_members' && key !== 'booking_id';
           });
         const submissionLabel = formatSubmissionLabel(entry?.submitted_at, responseHistory.length - idx);
 
