@@ -6,7 +6,7 @@ Follow these steps to automatically send guest responses from Google Form to you
 
 ## Step 1: Open Google Form Script Editor
 
-1. Go to your Google Form: https://docs.google.com/forms/d/e/1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ/edit
+1. Go to your Google Form: https://docs.google.com/forms/d/e/1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw/edit
 2. Click the **⋮ (three dots menu)** at the top right
 3. Select **Script editor**
 
@@ -94,7 +94,8 @@ If responses don't appear in your app:
 
 ## 📝 Important Notes
 
-- The booking ID field in your Google Form must be the same prefill field: **entry.1457480287**
+- The booking ID field in your Google Form must use this prefill field: **entry.652174934**
+- The example test booking ID is **BK1001**; it must exist in MongoDB for a webhook test to be accepted.
 - The webhook URL in the script is set to your Render deployment: `https://staybook1404-1704.onrender.com/api/submit-form`
 - For local testing, temporarily change it to: `http://localhost:3002/api/submit-form`
 - Each form submission automatically creates a new response entry in your app

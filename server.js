@@ -15,11 +15,11 @@ const PORT = process.env.PORT || 3002;
 const APP_NAME = process.env.APP_NAME || 'StayBook';
 const STORAGE_PREFIX = process.env.STORAGE_PREFIX || 'staybook';
 const DEFAULT_PROPERTY_NAME = process.env.PROPERTY_NAME || 'My Property';
-const DEFAULT_GOOGLE_FORM_URL = process.env.GOOGLE_FORM_LINK || 'https://docs.google.com/forms/d/e/1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ/viewform';
+const DEFAULT_GOOGLE_FORM_URL = process.env.GOOGLE_FORM_LINK || 'https://docs.google.com/forms/d/e/1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw/viewform?usp=pp_url&entry.652174934=';
 
 // ── Google Form Dynamic Link Generator ──────────────────────
-const GOOGLE_FORM_ID = '1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ';
-const BOOKING_ID_ENTRY = '1457480287';
+const GOOGLE_FORM_ID = '1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw';
+const BOOKING_ID_ENTRY = '652174934';
 
 function generateFormLink(bookingId) {
   return `https://docs.google.com/forms/d/e/${GOOGLE_FORM_ID}/viewform?usp=pp_url&entry.${BOOKING_ID_ENTRY}=${encodeURIComponent(bookingId)}`;
@@ -73,7 +73,8 @@ app.get('/config.js', (req, res) => {
       appName: APP_NAME,
       storagePrefix: STORAGE_PREFIX,
       apiBaseUrl: process.env.API_BASE_URL || '',
-      googleFormUrl: DEFAULT_GOOGLE_FORM_URL
+      googleFormUrl: DEFAULT_GOOGLE_FORM_URL,
+      formPrefillField: process.env.FORM_PREFILL_FIELD || 'entry.652174934'
     })};`
   );
 });
@@ -180,12 +181,12 @@ if (count.c === 0) {
     { id: uuidv4(), guest_name:'Sarah Mehta',  guest_email:'sarah.m@email.com',  guest_phone:'+91 98765 43210',
       check_in:date(6), check_out:date(8), check_in_time:'14:00', check_out_time:'11:00', guests:2, nights:3, amount:12500,
       status:'confirmed', color:'#0d9488', initials:'SM',
-      form_link:'https://forms.gle/example', form_sent:1, form_sent_at:date(1)+'T10:00:00',
+      form_link:'', form_sent:1, form_sent_at:date(1)+'T10:00:00',
       host_notes:'Repeat guest. Very clean. ⭐⭐⭐⭐⭐' },
     { id: uuidv4(), guest_name:'Priya Kapoor', guest_email:'priya.k@email.com',  guest_phone:'+91 91234 56789',
       check_in:date(14), check_out:date(16), check_in_time:'15:00', check_out_time:'10:00', guests:3, nights:3, amount:12300,
       status:'confirmed', color:'#6366f1', initials:'PK',
-      form_link:'https://forms.gle/example2', form_sent:1, form_sent_at:date(5)+'T14:00:00',
+      form_link:'', form_sent:1, form_sent_at:date(5)+'T14:00:00',
       host_notes:'First time guest. Verified ID.' },
     { id: uuidv4(), guest_name:'Rahul Desai',  guest_email:'rahul.d@email.com',  guest_phone:'+91 90000 11122',
       check_in:date(20), check_out:date(22), check_in_time:'16:00', check_out_time:'11:00', guests:4, nights:3, amount:13500,
@@ -228,7 +229,7 @@ if (count.c === 0) {
   insSetting.run('property_name', DEFAULT_PROPERTY_NAME);
   insSetting.run('price_per_night', '4100');
   insSetting.run('google_form_link', DEFAULT_GOOGLE_FORM_URL);
-  insSetting.run('form_prefill_field', 'entry.1457480287');
+  insSetting.run('form_prefill_field', 'entry.652174934');
 
   console.log('✅ Demo data seeded!');
 }
@@ -243,7 +244,7 @@ const insPropSetting = db.prepare("INSERT OR IGNORE INTO property_settings (prop
 insPropSetting.run('property-2', 'property_name', 'Sea View Studio');
 insPropSetting.run('property-2', 'price_per_night', '4100');
 insPropSetting.run('property-2', 'google_form_link', DEFAULT_GOOGLE_FORM_URL);
-insPropSetting.run('property-2', 'form_prefill_field', 'entry.1457480287');
+insPropSetting.run('property-2', 'form_prefill_field', 'entry.652174934');
 insPropSetting.run('property-2', 'gmail_user', '');
 insPropSetting.run('property-2', 'gmail_app_password', '');
 
@@ -638,7 +639,18 @@ app.post('/api/bookings/:id/send-whatsapp', requireAuth, (req, res) => {
 
 // POST /api/submit-form/:id  ← PUBLIC webhook (Google Form / Apps Script posts here)
 const handleSubmitForm = (req, res) => {
-  const booking_id = String(req.params.id || req.params.booking_id || '').trim();
+  let booking_id = String(
+    req.params.id || req.params.booking_id ||
+    req.body?.booking_id || req.body?.bookingId || req.body?.id || ''
+  ).trim();
+
+  // The bundled Apps Script posts to /api/submit-form and includes the
+  // prefilled booking UUID in its payload rather than the URL.
+  if (!booking_id) {
+    const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+    booking_id = Object.values(req.body || {}).map(value => String(value || '').trim()).find(value => uuid.test(value)) || '';
+  }
+
   if (!booking_id) {
     return res.status(400).json({ success: false, message: 'booking_id is required' });
   }
@@ -652,46 +664,14 @@ const handleSubmitForm = (req, res) => {
     return res.status(400).json({ success: false, message: 'Form link has not been sent for this booking yet' });
   }
 
-  const validFrom = new Date(`${booking.check_in}T00:00:00`);
-  const validUntil = new Date(`${booking.check_out}T23:59:59.999`);
-  if (Number.isNaN(validFrom.getTime()) || Number.isNaN(validUntil.getTime())) {
-    return res.status(400).json({ success: false, message: 'Invalid check-in/check-out date on booking' });
-  }
+  // Keep the guest's full answer set, including question labels that vary
+  // between forms. Responses remain valid before check-in and after checkout;
+  // the form link itself is the authorization to submit for this booking.
+  const data = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
+    ? req.body
+    : {};
 
-  const now = new Date();
-  if (now < validFrom) {
-    return res.status(403).json({
-      success: false,
-      message: `Form link will be active from check-in date (${booking.check_in})`
-    });
-  }
-
-  if (now > validUntil) {
-    return res.status(410).json({
-      success: false,
-      message: `Form link expired after checkout date (${booking.check_out})`
-    });
-  }
-
-  const {
-    guest_name,
-    guest_phone,
-    guest_email,
-    members,
-    photo_of_members,
-    id_of_members
-  } = req.body || {};
-
-  console.log('Incoming data:', req.body || {});
-
-  const data = {
-    guest_name: guest_name || '',
-    guest_phone: guest_phone || '',
-    guest_email: guest_email || '',
-    members: members || '',
-    photo_of_members: photo_of_members || '',
-    id_of_members: id_of_members || ''
-  };
+  console.log('Incoming data:', data);
 
   db.prepare("INSERT INTO form_responses (id, booking_id, response_data) VALUES (?, ?, ?)")
     .run(uuidv4(), booking_id, JSON.stringify(data));
@@ -707,6 +687,7 @@ const handleSubmitForm = (req, res) => {
 
 app.post('/api/submit-form/:id', handleSubmitForm);
 app.post('/api/submit-form/:booking_id', handleSubmitForm);
+app.post('/api/submit-form', handleSubmitForm);
 
 // GET /api/stats
 app.get('/api/stats', requireAuth, (req, res) => {

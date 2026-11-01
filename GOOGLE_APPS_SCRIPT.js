@@ -5,7 +5,7 @@
  * When a guest submits the form, their response is automatically sent to your app
  * 
  * Installation:
- * 1. Open your Google Form: https://docs.google.com/forms/d/e/1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ/edit
+ * 1. Open your Google Form: https://docs.google.com/forms/d/e/1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw/edit
  * 2. Click ⋮ (menu) → Script editor
  * 3. Delete existing code (if any)
  * 4. Paste this entire script
@@ -47,8 +47,8 @@ function onFormSubmit(e) {
       // collect all answers keyed by question title
       if (itemAnswer) responseData[itemTitle] = itemAnswer;
 
-      // 1) if this question title looks like 'booking' assume it's the id
-      if (!booking_id && /booking/i.test(itemTitle) && /^[a-f0-9\-]{36}$/i.test(itemAnswer)) {
+      // Prefer the dedicated Booking ID field; accept UUIDs and IDs like BK1001.
+      if (!booking_id && /\bbooking\s*(?:id|number|reference)\b/i.test(itemTitle) && itemAnswer) {
         booking_id = itemAnswer;
       }
 

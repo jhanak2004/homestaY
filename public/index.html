@@ -365,8 +365,8 @@ if (APP_CONFIG.appName) {
   document.title = `${APP_CONFIG.appName} — Host Calendar`;
 }
 const API = APP_CONFIG.apiBaseUrl || (window.location.origin + '/api');
-const DEFAULT_GOOGLE_FORM_URL = APP_CONFIG.googleFormUrl || 'https://docs.google.com/forms/d/e/1FAIpQLSfU6upslhYQ-jpAUBGXWz8oMrFmRzDSH3il5hzX9UTcAGNnrQ/viewform';
-let FORM_PREFILL_FIELD = APP_CONFIG.formPrefillField || 'entry.1457480287';
+const DEFAULT_GOOGLE_FORM_URL = APP_CONFIG.googleFormUrl || 'https://docs.google.com/forms/d/e/1FAIpQLSc_sb8PiDDk7rjTdnLtV-Nclg1KMkE1OXX7OSisab1VicFnAw/viewform?usp=pp_url&entry.652174934=';
+let FORM_PREFILL_FIELD = APP_CONFIG.formPrefillField || 'entry.652174934';
 const STORAGE_PREFIX = APP_CONFIG.storagePrefix || 'staybook';
 const storage = {
   key: (name) => `${STORAGE_PREFIX}_${name}`,
@@ -389,21 +389,14 @@ function scopePathToProperty(path) {
 function generateFormLink(bookingId, formLink = DEFAULT_GOOGLE_FORM_URL) {
   const base = String(formLink || DEFAULT_GOOGLE_FORM_URL).trim();
   if (!base) return '';
-  const joiner = base.includes('?') ? '&' : '?';
-  // If the provided form link already includes the prefill field, return it untouched
   try {
-    const lower = base.toLowerCase();
-    const prefillKey = String(FORM_PREFILL_FIELD || '').toLowerCase();
-    if (prefillKey && lower.includes(prefillKey + '=')) {
-      // Ensure `usp=pp_url` is present for prefilled links (helps Google Forms keep prefill behavior)
-      if (!lower.includes('usp=pp_url')) {
-        return `${base}${joiner}usp=pp_url`;
-      }
-      return base;
-    }
-  } catch (_) {}
-
-  return `${base}${joiner}usp=pp_url&${FORM_PREFILL_FIELD}=${encodeURIComponent(bookingId)}`;
+    const url = new URL(base);
+    url.searchParams.set('usp', 'pp_url');
+    if (FORM_PREFILL_FIELD) url.searchParams.set(FORM_PREFILL_FIELD, bookingId);
+    return url.toString();
+  } catch (_) {
+    return base;
+  }
 }
 
 function resolveGuestFormLink(bookingId, explicitLink) {
@@ -1047,19 +1040,13 @@ async function openDetail(id) {
 }
 
 async function sendForm(id) {
-  const link = document.getElementById('gfl-'+id)?.value?.trim();
-  if (!link) { showToast('⚠️ Paste a Google Form link first'); return; }
-  const r = await api('POST', `/bookings/${id}/send-form`, {form_link:link});
+  const r = await api('POST', `/bookings/${id}/send-form`, {});
   showToast(r.success ? '✅ '+r.message : '❌ '+r.message);
   if (r.success) { setTimeout(()=>{closeOverlay('detailOverlay');openDetail(id);},600); }
 }
 
 async function sendWhatsApp(id) {
-  const link = resolveGuestFormLink(id, document.getElementById('gfl-'+id)?.value?.trim() || '');
-  console.log(link);
-  if (!link) { showToast('⚠️ Add Google Form link in Settings first'); return; }
-
-  const r = await api('POST', `/bookings/${id}/send-whatsapp`, { form_link: link });
+  const r = await api('POST', `/bookings/${id}/send-whatsapp`, {});
   if (!r.success) {
     showToast('❌ ' + (r.message || 'WhatsApp link failed'));
     return;
