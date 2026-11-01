@@ -10,8 +10,8 @@ services:
       - key: NODE_VERSION
         value: "20"
       - key: API_BASE_URL
-        value: https://staybook1404-1704.onrender.com/api
+        value: https://homestay-2zyf.onrender.com/api
       - key: MONGODB_URI
-        value: mongodb+srv://earthyhomestay:earthyhomestay@cluster0.lx428gp.mongodb.net/staybook?retryWrites=true&w=majority
+        sync: false
       - key: PORT
         value: "3002"

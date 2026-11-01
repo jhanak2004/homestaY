@@ -55,7 +55,7 @@ The script needs to run automatically when someone submits the form:
 2. Click the **Preview** button (eye icon)
 3. Fill out the form with test data
 4. Submit
-5. Go to your app (http://localhost:3002 or https://staybook1404-1704.onrender.com)
+5. Go to your app (http://localhost:3002 or https://homestay-2zyf.onrender.com)
 6. Open the booking detail for "rahil" (16-18 May)
 7. Scroll to "Form Responses" section
 8. **You should see your test response!** ✅
@@ -76,7 +76,7 @@ When a guest fills the Google Form:
 2. Guest clicks Submit
 3. Google Form shows "Your response has been recorded"
 4. **Apps Script automatically captures the response**
-5. **Sends a POST request to:** `https://staybook1404-1704.onrender.com/api/submit-form`
+5. **Sends a POST request to:** `https://homestay-2zyf.onrender.com/api/submit-form`
 6. **Response appears instantly in your app's booking detail!**
 
 ---
@@ -96,7 +96,7 @@ If responses don't appear in your app:
 
 - The booking ID field in your Google Form must use this prefill field: **entry.652174934**
 - The example test booking ID is **BK1001**; it must exist in MongoDB for a webhook test to be accepted.
-- The webhook URL in the script is set to your Render deployment: `https://staybook1404-1704.onrender.com/api/submit-form`
+- The webhook URL in the script is set to your Render deployment: `https://homestay-2zyf.onrender.com/api/submit-form`
 - For local testing, temporarily change it to: `http://localhost:3002/api/submit-form`
 - Each form submission automatically creates a new response entry in your app
 

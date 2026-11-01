@@ -17,7 +17,7 @@
  */
 
 // ✏️ CONFIGURE THESE SETTINGS ✏️
-const WEBHOOK_URL = 'https://staybook1404-1704.onrender.com/api/submit-form';
+const WEBHOOK_URL = 'https://homestay-2zyf.onrender.com/api/submit-form';
 // For local testing, use: 'http://localhost:3002/api/submit-form'
 
 /**
