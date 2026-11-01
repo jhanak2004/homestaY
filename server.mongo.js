@@ -159,6 +159,7 @@ function cleanBookingId(value) {
 }
 
 app.get('/config.js', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.type('application/javascript').send(
     `window.APP_CONFIG = ${JSON.stringify({
       appName: APP_NAME,
@@ -171,14 +172,17 @@ app.get('/config.js', (req, res) => {
 });
 
 app.get('/', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'properties.html'));
 });
 
 app.get('/app', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/login', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
