@@ -467,7 +467,7 @@ async function logout() {
 }
 
 /* ═══════════════════════════ API ═══════════════════════════ */
-async function api(method, path, body) {
+async function api(method, path, body, retryUnauthorized = true) {
   try {
     const scopedPath = scopePathToProperty(path);
     const token = getToken();
@@ -487,6 +487,9 @@ async function api(method, path, body) {
     if (r.status === 401) {
       storage.remove('token');
       storage.remove('user');
+      if (retryUnauthorized && await ensureAuth()) {
+        return api(method, path, body, false);
+      }
       return { success: false, message: 'Unauthorized' };
     }
     
@@ -929,7 +932,10 @@ async function saveSettings() {
 async function openDetail(id) {
   const res = await api('GET', `/bookings/${id}`);
   const b = res.data;
-  if (!b) { showToast('❌ Could not load booking'); return; }
+  if (!res.success || !b) {
+    showToast('❌ ' + (res.message || 'Could not load booking'));
+    return;
+  }
 
   const webhookUrl = `${API}/submit-form/${b.id}`;
   const prefilledFormLink = resolveGuestFormLink(b.id, b.form_link || '');
